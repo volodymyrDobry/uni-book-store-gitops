@@ -11,15 +11,13 @@ spec:
     path: charts/uni-book-store
     helm:
       valueFiles:
-        - values-minikube.yaml   # relative to the chart path above
+        - values-minikube.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: uni-book-store
   syncPolicy:
     automated:
       prune: true
-      # Lab 5 §6a: add `selfHeal: true` here, commit & push, and watch Argo CD
-      # revert a manual `kubectl scale`. Left off initially so drift is visible.
-      # selfHeal: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
