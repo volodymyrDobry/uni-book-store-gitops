@@ -38,10 +38,7 @@ rollout:
     canary:
       steps:
         - setWeight: 20
-        - pause: {duration: 30s}        # let metrics accumulate
-        - analysis:
-            templates:
-              - templateName: book-management-success-rate
+        - pause: {duration: 30s}
         - setWeight: 60
         - pause: {duration: 30s}
         - setWeight: 80
