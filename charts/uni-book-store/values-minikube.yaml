@@ -16,47 +16,40 @@
 
 existingSecret: uni-book-store-secret
 existingKeycloakSecret: uni-book-store-keycloak-secret
-
 bookManagement:
   replicaCount: 1
   image:
     repository: ghcr.io/volodymyrdobry/book-management-service
     tag: "1.0.3"
     pullPolicy: IfNotPresent
-
 orderService:
   replicaCount: 1
   image:
     repository: ghcr.io/volodymyrdobry/order-service
     tag: "1.0.3"
     pullPolicy: IfNotPresent
-
 frontend:
   replicaCount: 1
   image:
     repository: ghcr.io/volodymyrdobry/uni-bookstore-client
-    tag: "1.0.3"
+    tag: "1.0.4"
     pullPolicy: IfNotPresent
   # Entry is through the Ingress; no NodePort needed under Argo CD.
   service:
     type: ClusterIP
-
 ingress:
   enabled: true
   className: nginx
   frontendHost: uni-book-store.local
   keycloakHost: keycloak.local
-
 # Backend pods map keycloak.local to the minikube node so JWT issuer validation
 # matches the browser. Update if `minikube ip` differs.
 keycloak:
   hostAliasIp: "192.168.49.2"
-
 postgres:
   persistence:
     enabled: true
     size: "1Gi"
-
 keycloakDb:
   persistence:
     enabled: true
