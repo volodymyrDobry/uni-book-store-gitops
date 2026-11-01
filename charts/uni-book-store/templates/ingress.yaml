@@ -1,0 +1,47 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "uni-book-store.frontend.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    # Entry point: the SPA is served here and its nginx proxies /api same-origin
+    # to the two microservices.
+    - host: {{ .Values.ingress.frontendHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "uni-book-store.frontend.fullname" . }}
+                port:
+                  number: {{ .Values.frontend.service.port }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "uni-book-store.keycloak.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: keycloak
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    # Keycloak must be reachable at the SAME host for the browser and the backend
+    # ({{ .Values.ingress.keycloakHost }}) so the token issuer matches on both sides.
+    - host: {{ .Values.ingress.keycloakHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "uni-book-store.keycloak.fullname" . }}
+                port:
+                  number: 8080
+{{- end }}

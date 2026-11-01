@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "uni-book-store.keycloak.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "keycloak") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "keycloak") | nindent 8 }}
+    spec:
+      initContainers:
+        - name: wait-for-keycloak-db
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z {{ include "uni-book-store.keycloakDb.fullname" . }} 5432; do sleep 2; done"]
+      containers:
+        - name: keycloak
+          image: "{{ .Values.keycloak.image.repository }}:{{ .Values.keycloak.image.tag }}"
+          imagePullPolicy: {{ .Values.keycloak.image.pullPolicy }}
+          args: ["start-dev", "--import-realm"]
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: {{ .Values.keycloak.adminUser | quote }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "uni-book-store.keycloakSecretName" . }}
+                  key: KEYCLOAK_ADMIN_PASSWORD
+            - name: KC_DB
+              value: postgres
+            - name: KC_DB_URL
+              value: {{ printf "jdbc:postgresql://%s:5432/%s" (include "uni-book-store.keycloakDb.fullname" .) .Values.keycloakDb.auth.database | quote }}
+            - name: KC_DB_USERNAME
+              value: {{ .Values.keycloakDb.auth.username | quote }}
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "uni-book-store.keycloakSecretName" . }}
+                  key: KC_DB_PASSWORD
+            # Public URL the BROWSER uses; tokens are issued with this issuer, which
+            # the backend services validate against.
+            - name: KC_HOSTNAME
+              value: {{ printf "http://%s" .Values.ingress.keycloakHost | quote }}
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            - name: KC_PROXY_HEADERS
+              value: xforwarded
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: management
+              containerPort: 9000
+          volumeMounts:
+            - name: realm-import
+              mountPath: /opt/keycloak/data/import
+              readOnly: true
+          resources:
+            {{- toYaml .Values.keycloak.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /health/ready
+              port: 9000
+            periodSeconds: 5
+            failureThreshold: 40
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 9000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 9000
+            periodSeconds: 15
+      volumes:
+        - name: realm-import
+          configMap:
+            name: {{ include "uni-book-store.keycloak.fullname" . }}-realm
+            items:
+              - key: realm.json
+                path: realm.json
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "uni-book-store.keycloak.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: keycloak
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "keycloak") | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

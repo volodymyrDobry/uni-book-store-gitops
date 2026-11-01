@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "uni-book-store.bookManagement.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: book-management
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "book-management") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.bookManagement.service.port }}
+      targetPort: {{ .Values.bookManagement.containerPort }}

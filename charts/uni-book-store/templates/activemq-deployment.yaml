@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "uni-book-store.activemq.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: activemq
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "activemq") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "activemq") | nindent 8 }}
+    spec:
+      containers:
+        - name: activemq
+          image: "{{ .Values.activemq.image.repository }}:{{ .Values.activemq.image.tag }}"
+          imagePullPolicy: {{ .Values.activemq.image.pullPolicy }}
+          ports:
+            - name: openwire
+              containerPort: {{ .Values.activemq.openwirePort }}
+            - name: console
+              containerPort: {{ .Values.activemq.consolePort }}
+          resources:
+            {{- toYaml .Values.activemq.resources | nindent 12 }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.activemq.openwirePort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.activemq.openwirePort }}
+            initialDelaySeconds: 20
+            periodSeconds: 15

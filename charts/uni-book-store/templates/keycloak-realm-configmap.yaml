@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "uni-book-store.keycloak.fullname" . }}-realm
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: keycloak
+data:
+  # Minimal hand-written realm imported by Keycloak on startup (--import-realm):
+  # realm + public SPA client (PKCE) + ADMIN/USER roles + one test user. The SPA
+  # redirect/origin URLs follow the configured frontend host.
+  realm.json: |
+    {
+      "realm": "uni-book-store",
+      "enabled": true,
+      "sslRequired": "none",
+      "roles": {
+        "realm": [
+          { "name": "ADMIN" },
+          { "name": "USER" }
+        ]
+      },
+      "clients": [
+        {
+          "clientId": "uni-book-store-client",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": true,
+          "standardFlowEnabled": true,
+          "directAccessGrantsEnabled": true,
+          "redirectUris": [
+            "http://{{ .Values.ingress.frontendHost }}/*"
+          ],
+          "webOrigins": [
+            "http://{{ .Values.ingress.frontendHost }}"
+          ],
+          "attributes": {
+            "pkce.code.challenge.method": "S256",
+            "post.logout.redirect.uris": "http://{{ .Values.ingress.frontendHost }}/*"
+          }
+        }
+      ],
+      "users": [
+        {
+          "username": "testuser",
+          "enabled": true,
+          "emailVerified": true,
+          "email": "testuser@{{ .Values.ingress.frontendHost }}",
+          "firstName": "Test",
+          "lastName": "User",
+          "credentials": [
+            { "type": "password", "value": "password", "temporary": false }
+          ],
+          "realmRoles": [ "ADMIN", "USER" ]
+        }
+      ]
+    }

@@ -1,0 +1,63 @@
+# GitOps / minikube values (Lab 5).
+# Images come from GHCR with concrete tags (never `latest`) so Argo CD / the
+# cluster pulls them directly — no `minikube image load`. Secrets are created
+# out-of-band (existingSecret), so no plaintext secret lives in Git.
+#
+# One-time, before the first sync:
+#   kubectl create namespace uni-book-store
+#   kubectl -n uni-book-store create secret generic uni-book-store-secret \
+#     --from-literal=SPRING_DATASOURCE_PASSWORD=S3cr3tP@ssw0rd_demo \
+#     --from-literal=POSTGRES_PASSWORD=S3cr3tP@ssw0rd_demo \
+#     --from-literal=S3_ACCESS_KEY=test --from-literal=S3_SECRET_KEY=test
+#   kubectl -n uni-book-store create secret generic uni-book-store-keycloak-secret \
+#     --from-literal=KEYCLOAK_ADMIN_PASSWORD=admin \
+#     --from-literal=KC_DB_PASSWORD=keycloak_demo_pw \
+#     --from-literal=POSTGRES_PASSWORD=keycloak_demo_pw
+
+existingSecret: uni-book-store-secret
+existingKeycloakSecret: uni-book-store-keycloak-secret
+
+bookManagement:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/volodymyrdobry/book-management-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+orderService:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/volodymyrdobry/order-service
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/volodymyrdobry/uni-bookstore-client
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  # Entry is through the Ingress; no NodePort needed under Argo CD.
+  service:
+    type: ClusterIP
+
+ingress:
+  enabled: true
+  className: nginx
+  frontendHost: uni-book-store.local
+  keycloakHost: keycloak.local
+
+# Backend pods map keycloak.local to the minikube node so JWT issuer validation
+# matches the browser. Update if `minikube ip` differs.
+keycloak:
+  hostAliasIp: "192.168.49.2"
+
+postgres:
+  persistence:
+    enabled: true
+    size: "1Gi"
+
+keycloakDb:
+  persistence:
+    enabled: true
+    size: "1Gi"

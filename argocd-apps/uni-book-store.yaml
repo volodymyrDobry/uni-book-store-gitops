@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: uni-book-store
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/volodymyrDobry/uni-book-store-gitops.git
+    targetRevision: main
+    path: charts/uni-book-store
+    helm:
+      valueFiles:
+        - values-minikube.yaml   # relative to the chart path above
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: uni-book-store
+  syncPolicy:
+    automated:
+      prune: true
+      # Lab 5 §6a: add `selfHeal: true` here, commit & push, and watch Argo CD
+      # revert a manual `kubectl scale`. Left off initially so drift is visible.
+      # selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

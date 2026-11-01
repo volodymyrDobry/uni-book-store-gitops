@@ -1,0 +1,32 @@
+# DEV environment overrides (applied on top of values.yaml).
+# Lightweight: 1 replica per service, 1.0.0 images, ephemeral DBs,
+# reached locally via the frontend NodePort / port-forward (no Ingress).
+
+bookManagement:
+  replicaCount: 1
+  image:
+    tag: "1.0.0"
+
+orderService:
+  replicaCount: 1
+  image:
+    tag: "1.0.0"
+
+frontend:
+  replicaCount: 1
+  image:
+    tag: "1.0.0"
+  service:
+    type: NodePort
+    nodePort: 30081
+
+ingress:
+  enabled: false
+
+postgres:
+  persistence:
+    enabled: false
+
+keycloakDb:
+  persistence:
+    enabled: false

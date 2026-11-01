@@ -1,0 +1,60 @@
+# PROD environment overrides (applied on top of values.yaml).
+# Heavier: more replicas, larger resources, durable DBs, Ingress enabled,
+# access through the Ingress only (no NodePort).
+
+bookManagement:
+  replicaCount: 3
+  image:
+    tag: "1.1.0"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+orderService:
+  replicaCount: 3
+  image:
+    tag: "1.1.0"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+frontend:
+  replicaCount: 2
+  image:
+    tag: "1.1.0"
+  service:
+    type: ClusterIP
+
+ingress:
+  enabled: true
+  frontendHost: "uni-book-store.example.com"
+  keycloakHost: "keycloak.example.com"
+
+postgres:
+  persistence:
+    enabled: true
+    size: "5Gi"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "512Mi"
+
+keycloakDb:
+  persistence:
+    enabled: true
+    size: "5Gi"
+
+# In a real cluster DNS resolves the Keycloak host, so no node hostAlias is needed.
+keycloak:
+  hostAliasIp: ""

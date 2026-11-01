@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "uni-book-store.localstack.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: localstack
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "localstack") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "localstack") | nindent 8 }}
+    spec:
+      containers:
+        - name: localstack
+          image: "{{ .Values.localstack.image.repository }}:{{ .Values.localstack.image.tag }}"
+          imagePullPolicy: {{ .Values.localstack.image.pullPolicy }}
+          env:
+            - name: SERVICES
+              value: "s3"
+            - name: DEBUG
+              value: "0"
+          ports:
+            - name: edge
+              containerPort: {{ .Values.localstack.port }}
+          resources:
+            {{- toYaml .Values.localstack.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: {{ .Values.localstack.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_localstack/health
+              port: {{ .Values.localstack.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 15

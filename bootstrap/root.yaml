@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/volodymyrDobry/uni-book-store-gitops.git
+    targetRevision: main
+    path: argocd-apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  # App-of-Apps: the only object applied by hand. It watches argocd-apps/ and
+  # creates/updates every child Application from Git.
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

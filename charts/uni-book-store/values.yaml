@@ -1,0 +1,212 @@
+# Default values — target the DEVELOPMENT environment.
+# Overridden per environment via values-dev.yaml / values-prod.yaml and --set.
+#
+# This chart mirrors docker-compose: two Spring Boot microservices
+# (book-management-service, order-service) behind an nginx SPA gateway, with
+# PostgreSQL, Keycloak (+ its own DB), ActiveMQ and LocalStack (S3).
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Secret handling. Empty (default): the chart renders its own demo Secrets.
+# Set to the name of a pre-created Secret (e.g. for GitOps, so no plaintext
+# secret lives in Git) and the chart skips rendering that Secret and references
+# the given name instead. Required keys:
+#   existingSecret:         SPRING_DATASOURCE_PASSWORD, POSTGRES_PASSWORD, S3_ACCESS_KEY, S3_SECRET_KEY
+#   existingKeycloakSecret: KEYCLOAK_ADMIN_PASSWORD, KC_DB_PASSWORD, POSTGRES_PASSWORD
+existingSecret: ""
+existingKeycloakSecret: ""
+
+# ---------------------------------------------------------------------------
+# book-management-service — catalogue + stock (owns the books/stock data).
+# ---------------------------------------------------------------------------
+bookManagement:
+  replicaCount: 1
+  image:
+    repository: book-management-service
+    # Defaults to .Chart.AppVersion when empty.
+    tag: ""
+    pullPolicy: IfNotPresent
+  containerPort: 8081
+  service:
+    port: 8081
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# ---------------------------------------------------------------------------
+# order-service — basket, orders, receipts (Quartz + S3), reservation saga.
+# ---------------------------------------------------------------------------
+orderService:
+  replicaCount: 1
+  image:
+    repository: order-service
+    tag: ""
+    pullPolicy: IfNotPresent
+  containerPort: 8083
+  service:
+    port: 8083
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# ---------------------------------------------------------------------------
+# frontend — React SPA served by nginx, which proxies /api to the services.
+# ---------------------------------------------------------------------------
+frontend:
+  replicaCount: 1
+  image:
+    repository: uni-book-store-frontend
+    tag: ""
+    pullPolicy: IfNotPresent
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30081
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+
+# ---------------------------------------------------------------------------
+# Shared application config (non-secret) injected into both services.
+# ---------------------------------------------------------------------------
+config:
+  S3_REGION: "us-east-1"
+  S3_BUCKET: "ubs-receipts"
+  MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info"
+  MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
+  MANAGEMENT_INFO_ENV_ENABLED: "true"
+
+# Shared secrets (demo values only — not real credentials).
+secrets:
+  s3AccessKey: "test"
+  s3SecretKey: "test"
+
+# ---------------------------------------------------------------------------
+# PostgreSQL (application database).
+# ---------------------------------------------------------------------------
+postgres:
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    port: 5432
+  auth:
+    database: "mydatabase"
+    username: "myuser"
+    password: "S3cr3tP@ssw0rd_demo"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+  persistence:
+    enabled: true
+    size: "1Gi"
+
+# ---------------------------------------------------------------------------
+# ActiveMQ "Classic" broker (order-placement saga).
+# ---------------------------------------------------------------------------
+activemq:
+  image:
+    repository: apache/activemq-classic
+    tag: "6.2.0"
+    pullPolicy: IfNotPresent
+  openwirePort: 61616
+  consolePort: 8161
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# ---------------------------------------------------------------------------
+# LocalStack (S3 emulation for receipt storage).
+# ---------------------------------------------------------------------------
+localstack:
+  image:
+    repository: localstack/localstack
+    tag: "3"
+    pullPolicy: IfNotPresent
+  port: 4566
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# ---------------------------------------------------------------------------
+# Keycloak + its own PostgreSQL.
+# ---------------------------------------------------------------------------
+keycloak:
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: "25.0"
+    pullPolicy: IfNotPresent
+  adminUser: "admin"
+  adminPassword: "admin"
+  # IP the backend pods map the Keycloak ingress host to (usually `minikube ip`),
+  # so services validate JWTs against the same issuer the browser uses. Set to ""
+  # to skip the hostAlias (e.g. when DNS already resolves the ingress host).
+  hostAliasIp: "192.168.49.2"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+keycloakDb:
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  auth:
+    database: "keycloak"
+    username: "keycloak"
+    password: "keycloak_demo_pw"
+  persistence:
+    enabled: true
+    size: "1Gi"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# ---------------------------------------------------------------------------
+# Ingress — the SPA host (entry point) and the Keycloak host (shared issuer).
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: "nginx"
+  frontendHost: "uni-book-store.local"
+  keycloakHost: "keycloak.local"
+
+# Optional bitnami/postgresql dependency (Task 9a). OFF by default — the chart
+# uses its own Postgres templates. Enable only to demo the dependency:
+#   helm install ... --set postgresql.enabled=true
+postgresql:
+  enabled: false

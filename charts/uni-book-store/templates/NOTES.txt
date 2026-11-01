@@ -1,0 +1,43 @@
+✅  {{ .Chart.Name }} installed — chart {{ .Chart.Name }}-{{ .Chart.Version }}, app version {{ .Chart.AppVersion }}.
+
+   Release:   {{ .Release.Name }}
+   Namespace: {{ .Release.Namespace }}
+
+1. Wait until the services are ready:
+
+   kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "uni-book-store.bookManagement.fullname" . }}
+   kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "uni-book-store.orderService.fullname" . }}
+   kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "uni-book-store.frontend.fullname" . }}
+
+2. Open the application in a browser:
+{{- if .Values.ingress.enabled }}
+
+   Ingress is enabled. With the docker driver on macOS, run `minikube tunnel`
+   and map both hosts to the node in /etc/hosts:
+
+     127.0.0.1 {{ .Values.ingress.frontendHost }}
+     127.0.0.1 {{ .Values.ingress.keycloakHost }}
+
+   Then open:  http://{{ .Values.ingress.frontendHost }}/
+
+   NOTE: the backend pods resolve "{{ .Values.ingress.keycloakHost }}" via a hostAlias
+   to {{ .Values.keycloak.hostAliasIp | default "<unset>" }} (usually `minikube ip`). Update
+   keycloak.hostAliasIp if your node IP differs.
+{{- else if eq .Values.frontend.service.type "NodePort" }}
+
+   The frontend Service is a NodePort. Open it with:
+
+     minikube service {{ include "uni-book-store.frontend.fullname" . }} -n {{ .Release.Namespace }}
+{{- else }}
+
+   The frontend Service type is {{ .Values.frontend.service.type }}. Forward a local port:
+
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "uni-book-store.frontend.fullname" . }} 8088:{{ .Values.frontend.service.port }}
+
+   Then open:  http://localhost:8088/
+{{- end }}
+
+3. Inspect the release:
+
+   helm status {{ .Release.Name }} -n {{ .Release.Namespace }}
+   helm get values {{ .Release.Name }} -n {{ .Release.Namespace }}
