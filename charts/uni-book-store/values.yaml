@@ -24,15 +24,31 @@ existingKeycloakSecret: ""
 # ---------------------------------------------------------------------------
 rollout:
   enabled: false
+  # Lab 7: metric-based gate. When enabled, the AnalysisTemplate is rendered and
+  # the canary strategy (overridden in values-minikube.yaml) adds an `analysis`
+  # step that queries Prometheus for the success rate.
+  analysis:
+    enabled: false
+    prometheusAddress: http://kps-prometheus.monitoring:9090
+    selector: 'namespace="uni-book-store"'
   strategy:
     canary:
       steps:
         - setWeight: 20
-        - pause: {}                 # manual gate — wait for `promote`
+        - pause: {duration: 30s}
         - setWeight: 60
         - pause: {duration: 30s}
         - setWeight: 80
         - pause: {duration: 30s}
+
+# Extra environment for book-management-service (e.g. FAIL_RATE for the Lab 7
+# bad-release demo). Empty by default.
+env: []
+
+# Lab 7: scrape /actuator/prometheus via a ServiceMonitor.
+metrics:
+  enabled: false
+  path: /actuator/prometheus
 
 # ---------------------------------------------------------------------------
 # book-management-service — catalogue + stock (owns the books/stock data).

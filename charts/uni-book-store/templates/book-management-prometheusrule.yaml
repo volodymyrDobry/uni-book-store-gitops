@@ -1,0 +1,23 @@
+{{- if .Values.metrics.enabled }}
+# Lab 7 (optional §6d): fire when >5% of book-management responses are 5xx.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "uni-book-store.bookManagement.fullname" . }}-alerts
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: book-management
+spec:
+  groups:
+    - name: book-management
+      rules:
+        - alert: BookManagementHighErrorRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{namespace="{{ .Release.Namespace }}",status=~"5.."}[1m]))
+            / sum(rate(http_server_requests_seconds_count{namespace="{{ .Release.Namespace }}"}[1m])) > 0.05
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "book-management: more than 5% of responses are 5xx"
+{{- end }}

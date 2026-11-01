@@ -1,0 +1,20 @@
+{{- if .Values.metrics.enabled }}
+# Prometheus scrape target for book-management-service (Lab 7). The Service port
+# must be named (http); kube-prometheus-stack discovers this via its
+# serviceMonitorSelectorNilUsesHelmValues:false setting.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "uni-book-store.bookManagement.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: book-management
+spec:
+  selector:
+    matchLabels:
+      {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "book-management") | nindent 6 }}
+  endpoints:
+    - port: http
+      path: {{ .Values.metrics.path | default "/actuator/prometheus" }}
+      interval: 15s
+{{- end }}

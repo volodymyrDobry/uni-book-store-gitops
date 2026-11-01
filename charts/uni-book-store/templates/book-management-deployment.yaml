@@ -34,6 +34,9 @@ spec:
           env:
             - name: SERVER_PORT
               value: {{ .Values.bookManagement.containerPort | quote }}
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           envFrom:
             - configMapRef:
                 name: {{ include "uni-book-store.fullname" . }}-config

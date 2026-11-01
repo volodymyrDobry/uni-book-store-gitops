@@ -17,9 +17,35 @@
 existingSecret: uni-book-store-secret
 existingKeycloakSecret: uni-book-store-keycloak-secret
 
-# Lab 6: book-management-service as an Argo Rollouts canary (strategy from values.yaml).
+# Lab 7: scrape book-management /actuator/prometheus.
+metrics:
+  enabled: true
+
+# Lab 7: bad-release switch for the auto-rollback demo (0 = healthy).
+env:
+  - name: FAIL_RATE
+    value: "0"
+
+# Lab 6+7: book-management as an Argo Rollouts canary with a Prometheus
+# success-rate analysis gate (replaces the manual pause).
 rollout:
   enabled: true
+  analysis:
+    enabled: true
+    prometheusAddress: http://kps-prometheus.monitoring:9090
+    selector: 'namespace="uni-book-store"'
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: {duration: 30s}        # let metrics accumulate
+        - analysis:
+            templates:
+              - templateName: book-management-success-rate
+        - setWeight: 60
+        - pause: {duration: 30s}
+        - setWeight: 80
+        - pause: {duration: 30s}
 
 bookManagement:
   # >= 4 so the canary weight ratio is visible across pods.

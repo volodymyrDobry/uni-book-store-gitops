@@ -1,0 +1,14 @@
+{{- if .Values.metrics.enabled }}
+# Dashboard-as-code (Lab 7). The grafana_dashboard label makes the Grafana
+# sidecar import it (kps sidecar.dashboards.searchNamespace: ALL).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "uni-book-store.bookManagement.fullname" . }}-dashboard
+  labels:
+    grafana_dashboard: "1"
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+data:
+  book-management.json: |-
+{{ .Files.Get "dashboards/book-management.json" | indent 4 }}
+{{- end }}

@@ -1,0 +1,82 @@
+{
+  "title": "Uni Book Store — book-management",
+  "uid": "uni-book-store-bm",
+  "schemaVersion": 39,
+  "editable": true,
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "10s",
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "title": "Requests per second",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{namespace=\"uni-book-store\"}[1m]))" }
+      ]
+    },
+    {
+      "title": "5xx error ratio",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(http_server_requests_seconds_count{namespace=\"uni-book-store\",status=~\"5..\"}[1m])) / sum(rate(http_server_requests_seconds_count{namespace=\"uni-book-store\"}[1m]))" }
+      ]
+    },
+    {
+      "title": "p95 latency",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace=\"uni-book-store\"}[1m])))" }
+      ]
+    },
+    {
+      "title": "5xx per pod",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{pod}}", "expr": "sum by (pod) (rate(http_server_requests_seconds_count{namespace=\"uni-book-store\",status=~\"5..\"}[1m]))" }
+      ]
+    },
+    {
+      "title": "CPU per pod",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{pod}}", "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"uni-book-store\",container!=\"\"}[1m]))" }
+      ]
+    },
+    {
+      "title": "Memory per pod",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{pod}}", "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"uni-book-store\",container!=\"\"})" }
+      ]
+    },
+    {
+      "title": "Error logs (Loki)",
+      "type": "logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "options": { "showTime": true, "wrapLogMessage": true },
+      "targets": [
+        { "refId": "A", "expr": "{namespace=\"uni-book-store\"} | json | level=\"error\"" }
+      ]
+    }
+  ]
+}

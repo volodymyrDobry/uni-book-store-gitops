@@ -1,0 +1,26 @@
+{{- if .Values.rollout.analysis.enabled }}
+{{- $sel := .Values.rollout.analysis.selector }}
+# Lab 7: success-rate gate for the canary. Fraction of non-5xx responses across
+# book-management-service; below 95% fails the AnalysisRun and aborts the rollout.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: book-management-success-rate
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: book-management
+spec:
+  metrics:
+    - name: success-rate
+      interval: 30s
+      count: 4
+      failureLimit: 1
+      successCondition: result[0] >= 0.95
+      provider:
+        prometheus:
+          address: {{ .Values.rollout.analysis.prometheusAddress }}
+          query: |
+            sum(rate(http_server_requests_seconds_count{ {{- $sel -}},status!~"5.."}[1m]))
+            /
+            sum(rate(http_server_requests_seconds_count{ {{- $sel -}} }[1m]))
+{{- end }}
