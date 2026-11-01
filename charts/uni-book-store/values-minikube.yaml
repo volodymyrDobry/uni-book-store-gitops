@@ -16,8 +16,14 @@
 
 existingSecret: uni-book-store-secret
 existingKeycloakSecret: uni-book-store-keycloak-secret
+
+# Lab 6: book-management-service as an Argo Rollouts canary (strategy from values.yaml).
+rollout:
+  enabled: true
+
 bookManagement:
-  replicaCount: 1
+  # >= 4 so the canary weight ratio is visible across pods.
+  replicaCount: 5
   image:
     repository: ghcr.io/volodymyrdobry/book-management-service
     tag: "1.0.4"

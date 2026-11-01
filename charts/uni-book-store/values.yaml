@@ -18,6 +18,23 @@ existingSecret: ""
 existingKeycloakSecret: ""
 
 # ---------------------------------------------------------------------------
+# Progressive delivery (Lab 6). When enabled, book-management-service is
+# deployed as an Argo Rollouts Rollout instead of a Deployment, using the
+# canary strategy below. Disabled by default -> plain Deployment.
+# ---------------------------------------------------------------------------
+rollout:
+  enabled: false
+  strategy:
+    canary:
+      steps:
+        - setWeight: 20
+        - pause: {}                 # manual gate — wait for `promote`
+        - setWeight: 60
+        - pause: {duration: 30s}
+        - setWeight: 80
+        - pause: {duration: 30s}
+
+# ---------------------------------------------------------------------------
 # book-management-service — catalogue + stock (owns the books/stock data).
 # ---------------------------------------------------------------------------
 bookManagement:

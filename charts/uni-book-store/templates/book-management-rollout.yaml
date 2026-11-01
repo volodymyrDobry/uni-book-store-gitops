@@ -1,0 +1,68 @@
+{{- if .Values.rollout.enabled }}
+# Progressive-delivery variant of book-management-service (Lab 6). Same pod spec
+# as the Deployment; the rollout strategy (canary) comes from values. Enabled via
+# rollout.enabled, in which case the Deployment template above is not rendered.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "uni-book-store.bookManagement.fullname" . }}
+  labels:
+    {{- include "uni-book-store.labels" . | nindent 4 }}
+    app.kubernetes.io/component: book-management
+spec:
+  replicas: {{ .Values.bookManagement.replicaCount }}
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "book-management") | nindent 6 }}
+  strategy:
+    {{- toYaml .Values.rollout.strategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        {{- include "uni-book-store.selectorLabels" (dict "ctx" . "component" "book-management") | nindent 8 }}
+    spec:
+      {{- include "uni-book-store.keycloakHostAliases" . | nindent 6 }}
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z {{ include "uni-book-store.postgres.fullname" . }} {{ .Values.postgres.service.port }}; do sleep 2; done"]
+        - name: wait-for-activemq
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z {{ include "uni-book-store.activemq.fullname" . }} {{ .Values.activemq.openwirePort }}; do sleep 2; done"]
+      containers:
+        - name: book-management-service
+          image: "{{ .Values.bookManagement.image.repository }}:{{ .Values.bookManagement.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.bookManagement.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.bookManagement.containerPort }}
+          env:
+            - name: SERVER_PORT
+              value: {{ .Values.bookManagement.containerPort | quote }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "uni-book-store.fullname" . }}-config
+            - secretRef:
+                name: {{ include "uni-book-store.secretName" . }}
+          resources:
+            {{- toYaml .Values.bookManagement.resources | nindent 12 }}
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: {{ .Values.bookManagement.containerPort }}
+            periodSeconds: 5
+            failureThreshold: 40
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.bookManagement.containerPort }}
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.bookManagement.containerPort }}
+            periodSeconds: 10
+            failureThreshold: 3
+{{- end }}
