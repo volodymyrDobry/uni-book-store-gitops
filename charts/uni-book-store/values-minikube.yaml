@@ -21,21 +21,21 @@ bookManagement:
   replicaCount: 1
   image:
     repository: ghcr.io/volodymyrdobry/book-management-service
-    tag: "1.0.2"
+    tag: "1.0.3"
     pullPolicy: IfNotPresent
 
 orderService:
   replicaCount: 1
   image:
     repository: ghcr.io/volodymyrdobry/order-service
-    tag: "1.0.2"
+    tag: "1.0.3"
     pullPolicy: IfNotPresent
 
 frontend:
   replicaCount: 1
   image:
     repository: ghcr.io/volodymyrdobry/uni-bookstore-client
-    tag: "1.0.2"
+    tag: "1.0.3"
     pullPolicy: IfNotPresent
   # Entry is through the Ingress; no NodePort needed under Argo CD.
   service:
