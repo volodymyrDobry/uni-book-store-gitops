@@ -16,16 +16,13 @@
 
 existingSecret: uni-book-store-secret
 existingKeycloakSecret: uni-book-store-keycloak-secret
-
 # Lab 7: scrape book-management /actuator/prometheus.
 metrics:
   enabled: true
-
 # Lab 7: bad-release switch for the auto-rollback demo (0 = healthy).
 env:
   - name: FAIL_RATE
     value: "0"
-
 # Lab 6+7: book-management as an Argo Rollouts canary with a Prometheus
 # success-rate analysis gate (replaces the manual pause).
 rollout:
@@ -38,7 +35,7 @@ rollout:
     canary:
       steps:
         - setWeight: 20
-        - pause: {duration: 60s}        # let metrics accumulate before analysis
+        - pause: {duration: 60s} # let metrics accumulate before analysis
         - analysis:
             templates:
               - templateName: book-management-success-rate
@@ -46,19 +43,18 @@ rollout:
         - pause: {duration: 30s}
         - setWeight: 80
         - pause: {duration: 30s}
-
 bookManagement:
   # >= 4 so the canary weight ratio is visible across pods.
   replicaCount: 5
   image:
     repository: ghcr.io/volodymyrdobry/book-management-service
-    tag: "1.3.0"
+    tag: "1.4.0"
     pullPolicy: IfNotPresent
 orderService:
   replicaCount: 1
   image:
     repository: ghcr.io/volodymyrdobry/order-service
-    tag: "1.0.4"
+    tag: "1.4.0"
     pullPolicy: IfNotPresent
 frontend:
   replicaCount: 1
