@@ -24,7 +24,7 @@ metrics:
 # Lab 7: bad-release switch for the auto-rollback demo (0 = healthy).
 env:
   - name: FAIL_RATE
-    value: "0"
+    value: "0.5"
 
 # Lab 6+7: book-management as an Argo Rollouts canary with a Prometheus
 # success-rate analysis gate (replaces the manual pause).
