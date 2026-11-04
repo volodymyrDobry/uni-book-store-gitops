@@ -48,7 +48,7 @@ bookManagement:
   replicaCount: 5
   image:
     repository: ghcr.io/volodymyrdobry/book-management-service
-    tag: "1.3.0"
+    tag: "1.4.0"
     pullPolicy: IfNotPresent
 orderService:
   replicaCount: 1
